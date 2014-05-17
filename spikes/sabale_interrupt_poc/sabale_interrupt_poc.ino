@@ -1,6 +1,5 @@
 #include <TimerOne.h>
 #include <Adafruit_NeoPixel.h>
-#include <Sabalib.h>
 
 #define PIN 6
 
@@ -17,7 +16,6 @@
 //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(50, PIN, NEO_GRB + NEO_KHZ400);
 
-PartBase part = PartBase();
 
 const int led = LED_BUILTIN;  // the pin with a LED
 
@@ -26,7 +24,7 @@ void setup(void)
   strip.begin();
   strip.show();
   pinMode(led, OUTPUT);
-  Timer1.initialize(100000);
+  Timer1.initialize(50000);
   Timer1.attachInterrupt(blinkLED); // blinkLED to run every 0.01 second
   Serial.begin(9600);
 }
@@ -37,7 +35,7 @@ void setup(void)
 int ledState = LOW;
 volatile unsigned long blinkCount = 0; // use volatile for shared variables
 
-int blink_direction = 1;
+
 int pulse_step = 10;
 int pulse_max = 60;
 int pulse_index = 0;
@@ -45,8 +43,11 @@ int pulse_current_level = 0;
 void blinkLED(void)
 {
 
+  if (pulse_current_level < pulse_max) 
+  {
+      pulse_current_level += pulse_step;  
+  }
   
-  pulse_current_level += pulse_step;
   // go up
   int temp_level = pulse_current_level;
   int temp_index = pulse_index;
@@ -56,34 +57,39 @@ void blinkLED(void)
      temp_index++;
      temp_level = pulse_current_level - ((temp_index - pulse_index) * pulse_step);
   }  
-
-  // trying to come down, didn't work
-  /*
-
-  // come down
-  temp_index = pulse_index - 1;
-  temp_level = pulse_current_level - ((temp_index - pulse_index) * pulse_step);
-  while(temp_level > 0)
+  
+  if(pulse_current_level == pulse_max) 
   {
-     strip.setPixelColor(temp_index, strip.Color(temp_level, 0, 0));
-     temp_index--;
-     temp_level = pulse_current_level - ((temp_index - pulse_index) * pulse_step);
+      temp_index = pulse_index - 1;
+      temp_level = pulse_current_level - ((pulse_index - temp_index) * pulse_step);
+      while(temp_index >= 0 && temp_level >= 0)
+      {
+         strip.setPixelColor(temp_index, strip.Color(temp_level, 0, 0));
+         temp_index--;
+         temp_level = pulse_current_level - ((pulse_index - temp_index) * pulse_step);
+      }
   }
   
-  */
- 
   strip.show();
   
   if (pulse_current_level == pulse_max) 
   {
-     pulse_index++;
+      pulse_index++;
+  }
+   
+  if (pulse_index == strip.numPixels())
+  {
+      pulse_current_level = 0;
+      pulse_index = 0;
   }
    
    
    
-   
-   
-   
+   // trying to come down, didn't work
+  /*
+  
+  */
+ 
    
    
    
@@ -129,8 +135,6 @@ void loop(void)
   blinkCopy = blinkCount;
   interrupts();
 
-  Serial.print("blinkCount = ");
-  Serial.println(blinkCopy);
   delay(100);
 }
 
